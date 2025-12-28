@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>SheerID 自动化工具</title>
+    <style>
+        body { font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; padding: 40px; background: #f5f5f7; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        h2 { margin-top: 0; color: #1d1d1f; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #d2d2d7; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #0071e3; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        button:disabled { background: #999; }
+        #status { margin-top: 20px; white-space: pre-wrap; font-size: 14px; line-height: 1.5; }
+        .success-box { background: #f2fcf5; border: 1px solid #34c759; padding: 10px; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>验证链接提取</h2>
+        <input type="text" id="urlInput" placeholder="在此粘贴 SheerID 初始链接">
+        <button id="runBtn" onclick="runTask()">开始全自动提取</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        async function runTask() {
+            const btn = document.getElementById('runBtn');
+            const status = document.getElementById('status');
+            const url = document.getElementById('urlInput').value;
+
+            if(!url) return alert("请输入链接");
+
+            btn.disabled = true;
+            status.innerHTML = "⏳ 正在启动 Python 脚本...\n1. 正在生成勋章成员资料\n2. 正在注册临时邮箱\n3. 正在提交 SheerID 表单...";
+
+            try {
+                const response = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ programUrl: url })
+                });
+                const data = await response.json();
+
+                if (data.status === 'SUCCESS') {
+                    status.innerHTML = `<div class="success-box">
+                        <b>✅ 提取成功！</b><br>
+                        姓名: ${data.name}<br>
+                        邮箱: ${data.email}<br><br>
+                        <a href="${data.link}" target="_blank" style="color:#0071e3">👉 点击此处跳转到激活页</a>
+                    </div>`;
+                } else {
+                    status.innerHTML = "❌ 错误: " + (data.error || "未知异常");
+                }
+            } catch (e) {
+                status.innerHTML = "❌ 请求失败，可能触发了 Vercel 的超时限制 (10s)";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
